@@ -16,6 +16,7 @@ Posible Declaracion e implementacion de funciones:
 
 #define MAXHP 4
 #define MAXBALAS 6
+#define MAXSESIONES 100
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,24 +38,31 @@ typedef struct tambor
     int numbalas;
 }tTambor;
 
-/*tBalas *balas = NULL;
+typedef struct {
+    int disparoshechos;
+    int disparosrecibidos;
+    bool ganador;
+} tSesion;
 
-tTambor *tambor = NULL;
-*/
 
 void menuPrincipal(FILE *,tTambor**,int*,int*); //1-jugar 2-creadores 3.salir 4.mostrarres sesion anterior
-void jugar(tTambor**,int*,int*); //inicia el bucle de juego
+void jugar(tTambor**,int*,int*,tSesion*); //inicia el bucle de juego
 void creditos(); //imprime a los desarrolladores
 void cargarBalas(tTambor** ptambor); //genera una lista enlazada con balas aleatorias
 bool dispararJugador(tTambor** ptambor,int* pvida); //devuelve verdadadero si es balaviva y resta vida
 bool dispararCPU(tTambor** ptambor,int* pvida); //devuelve verdadero si  es balaviva y resta vida
 bool Disparar(tTambor** ptambor); //devuelve verdadero si es balaviva,y elimina una bala
 void Ganador(bool esJugador); //muestra el ganador
-void Enemigo(tTambor**,int*,int*); //elige al azar una opcion
+void Enemigo(tTambor**,int*,int*,tSesion*); //elige al azar una opcion
+
+void guardarSesion(FILE* ,tSesion); //guarda la sesion actual
 
 void sesionAnterior(FILE* parchivo); //imprime la sesion anterior si existe
 
-//TODO:void guardarsesion(FILE* parchivo); 
+void ordenarSesion(FILE* parchivo,tSesion); //ordena las sesiones anteriores y la actual
+
+void mostrarRecuentoSesiones(FILE* parchivo);
+
 
 
 
@@ -65,12 +73,12 @@ void menuPrincipal(FILE *parchivo,tTambor** ptambor,int* pVidaJugador,int* pVida
 {
     int opc=0;
 
-
+    tSesion Sesionact = {0,0,false};
 
     while(opc != 1)
     {
 
-    printf("1.Jugar\n2.Creadores\n3.Sesion anterior\n4.Salir");
+    printf("\n1.Jugar\n2.Creadores\n3.Sesion anterior\n4.Salir\n5.Mostrar recuento de sesiones\n");
 
     printf("\nElige una opcion: ");
     scanf("%d",&opc);
@@ -78,7 +86,7 @@ void menuPrincipal(FILE *parchivo,tTambor** ptambor,int* pVidaJugador,int* pVida
     switch(opc)
     {
         case 1:
-            jugar(ptambor,pVidaJugador,pVidaCPU);
+            jugar(ptambor,pVidaJugador,pVidaCPU,&Sesionact);
             break;
         case 2:
             creditos();
@@ -90,11 +98,18 @@ void menuPrincipal(FILE *parchivo,tTambor** ptambor,int* pVidaJugador,int* pVida
             printf("Saliendo...");
             Sleep(100);
             exit(0);
+            break;
+        case 5:
+            mostrarRecuentoSesiones(parchivo);
+            break;
     }
     }
+
+    guardarSesion(parchivo,Sesionact);
+    ordenarSesion(parchivo,Sesionact);
 }
 
-void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
+void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion *pSesionAct)
 {
     cargarBalas(ptambor);
     int opc;
@@ -117,6 +132,8 @@ void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
             else{
                 printf("\nBala de fogueo,turno de la cpu");
             }
+
+            pSesionAct->disparoshechos++;
         }
         
         if(opc == 2 && (*ptambor)->inicio != NULL)
@@ -126,6 +143,8 @@ void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
             {
                 printf("\nBala viva!,vida del jugador: %d",*pVidaJugador);
                 Sleep(500);
+                pSesionAct->disparoshechos++;
+                pSesionAct->disparosrecibidos++;
             }
         }
 
@@ -149,7 +168,7 @@ void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
         {
             printf("\nTurno del enemigo");
             Sleep(500);
-            Enemigo(ptambor,pVidaJugador,pVidaCPU);
+            Enemigo(ptambor,pVidaJugador,pVidaCPU,pSesionAct);
         }
         
 
@@ -159,6 +178,15 @@ void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
             cargarBalas(ptambor);
         }
 
+    }
+
+    if(*pVidaJugador <= 0)
+    {
+        pSesionAct->ganador = false;
+    }
+    else
+    {
+        pSesionAct->ganador = true;
     }
 
 }
@@ -279,7 +307,7 @@ void Ganador(bool esJugador)
     }
 }
 
-void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
+void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion* pSesionAct)
 {
     bool seguirturno=false;
     bool danoaljugador = false;
@@ -299,6 +327,7 @@ void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
                 printf("\nBala viva,vida de la cpu: %d\n",*pVidaCPU);
                 printf("\nTurno del jugador\n");
                 seguirturno = false;
+
             }
             else
             {
@@ -307,6 +336,7 @@ void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
                 seguirturno = true;
             }
             
+            pSesionAct->disparoshechos++;
         }
         else
         {
@@ -318,12 +348,17 @@ void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
             {
                 printf("\nBala viva,vida del jugador: %d\n",*pVidaJugador);
                 printf("\nSiguiente turno\n");
+                
+                pSesionAct->disparosrecibidos++;
             }
             else
             {
                 printf("\nBala de fogueo,turno del jugador");
                 Sleep(500);
+                
             }
+
+            pSesionAct->disparoshechos++;
 
             seguirturno = false;
         }
@@ -334,15 +369,169 @@ void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU)
 
 void sesionAnterior(FILE* parchivo)
 {
-    if(parchivo != NULL)
-    {
-        printf("\nCargando sesion anterior...");
-        Sleep(100);
 
+    parchivo = fopen("sesiones.dat","rb");
+
+    if(parchivo == NULL)
+    {
+        printf("\nNo hay sesion anterior o error al abrir el archivo");
         fclose(parchivo);
+        return;
+    }
+   
+    printf("\nSesion anterior:\n");
+
+    tSesion sesion;
+
+    //va a la sesion anterior,desde el final del archivo
+    fseek(parchivo,-sizeof(tSesion),SEEK_END);
+
+    if(fread(&sesion,sizeof(tSesion),1,parchivo) == 1)
+    {
+        printf("\nResultados de la sesion anterior:\n");
+
+        printf("\nDisparos hechos: %d",sesion.disparoshechos);
+        printf("\nDisparos recibidos: %d",sesion.disparosrecibidos);
+        printf("\nGanador: %s",sesion.ganador ? "Jugador" : "CPU");
     }
     else
     {
-        printf("\nNo hay sesion anterior");
+        printf("\nNo se pudo leer la sesion anterior");
     }
+    
+    fclose(parchivo);
+}
+
+void guardarSesion(FILE* parchivo,tSesion sesion)
+{
+    parchivo = fopen("sesiones.dat","ab");
+
+    if(parchivo == NULL)
+    {
+        printf("\nError al abrir el archivo");
+        fclose(parchivo);
+        return;
+    }
+
+    fwrite(&sesion,sizeof(tSesion),1,parchivo);
+
+    printf("\nSesion guardada\n");
+    Sleep(1);
+
+    fclose(parchivo);
+
+
+}
+
+void ordenarSesion(FILE* parchivo,tSesion sesion)
+{
+
+    // Abrir archivo en modo lectura para cargar datos
+    parchivo = fopen("sesiones.dat", "rb");
+
+    if (parchivo == NULL) {
+        printf("\nError al abrir el archivo para lectura");
+        return;
+    }
+
+    tSesion sesiones[MAXSESIONES];
+    int contadorses = 0;
+
+    // Leer las sesiones en memoria
+    while (fread(&sesiones[contadorses], sizeof(tSesion), 1, parchivo) == 1) {
+        contadorses++;
+        if (contadorses >= MAXSESIONES) break; // Evitar desbordamiento
+    }
+
+    fclose(parchivo); // Cerrar después de lectura
+
+    // Ordenar sesiones
+    for (int i = 0; i < contadorses - 1; i++) {
+        for (int j = i + 1; j < contadorses; j++) {
+            // Priorizar ganador (true primero)
+            if (sesiones[i].ganador < sesiones[j].ganador ||
+                // Si ambos son iguales, ordenar por disparos hechos (descendente)
+                (sesiones[i].ganador == sesiones[j].ganador &&
+                 sesiones[i].disparoshechos < sesiones[j].disparoshechos)) {
+                tSesion temp = sesiones[i];
+                sesiones[i] = sesiones[j];
+                sesiones[j] = temp;
+            }
+        }
+    }
+
+    // Abrir archivo en modo escritura para sobrescribir datos ordenados
+    parchivo = fopen("sesiones.dat", "wb");
+
+    if (parchivo == NULL) {
+        printf("\nError al abrir el archivo para escritura");
+        return;
+    }
+
+    // Escribir las sesiones ordenadas al archivo
+    for (int i = 0; i < contadorses; i++) {
+        fwrite(&sesiones[i], sizeof(tSesion), 1, parchivo);
+    }
+
+    fclose(parchivo); // Cerrar archivo después de escribir
+
+    printf("\nSesiones reordenadas y guardadas correctamente\n");
+
+    
+
+}
+
+void mostrarRecuentoSesiones(FILE* parchivo)
+{
+
+    parchivo = fopen("sesiones.dat","rb");
+
+    if(parchivo == NULL)
+    {
+        printf("\nError al abrir el archivo");
+        fclose(parchivo);
+        return;
+    }
+
+    printf("\nRecuento de sesiones:\n");
+
+    tSesion sesion,sesionant;
+
+    fread(&sesion,sizeof(tSesion),1,parchivo);
+
+    sesionant = sesion;
+
+    int ganadorJugador = 0, ganadorCPU = 0;
+    int balastotales = 0;
+    int numsesiones = 0;
+
+    while(!feof(parchivo))
+    {
+        if(sesion.ganador)
+        {
+            ganadorJugador++;
+        }
+        if(!sesion.ganador)
+        {
+            ganadorCPU++;
+        }
+
+        balastotales += sesion.disparoshechos;
+        balastotales += sesion.disparosrecibidos;
+
+        numsesiones++;
+
+        if(fread(&sesion,sizeof(tSesion),1,parchivo)!=1)
+        {
+            break;
+        }
+    }
+
+    printf("\nNumero de sesiones: %d",numsesiones);
+    printf("\nBalas totales: %d",balastotales);
+    printf("\nVeces que gano el jugador: %d",ganadorJugador);
+    printf("\nVeces que gano la pcu: %d",ganadorCPU);
+
+    fclose(parchivo);
+
 }

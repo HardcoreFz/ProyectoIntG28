@@ -3,3 +3,4 @@
 .vscode/settings.json
 build/Debug/outDebug.exe
 build/Debug/ProyectoIntegrador.o
+sesiones.dat

@@ -23,10 +23,12 @@ int main()
     if(vidaJugador <= 0)
     {
         Ganador(false);
+        system("start ./perdio.jpg");
     }
     else
     {
         Ganador(true);
+        system("start ./gano.jpg");
     }
     
 

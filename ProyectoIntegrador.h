@@ -73,12 +73,12 @@ void menuPrincipal(FILE *parchivo,tTambor** ptambor,int* pVidaJugador,int* pVida
 {
     int opc=0;
 
-    tSesion Sesionact = {0,0,false};
+    tSesion Sesionact = {0,0,false}; // se usa para el registro de la sesion actual
 
     while(opc != 1)
     {
 
-    printf("\n1.Jugar\n2.Creadores\n3.Sesion anterior\n4.Salir\n5.Mostrar recuento de sesiones\n");
+    printf("\n1.Jugar\n2.Creadores\n3.Sesion anterior\n4.Mostrar recuento de sesiones\n5.Salir\n");
 
     printf("\nElige una opcion: ");
     scanf("%d",&opc);
@@ -95,13 +95,15 @@ void menuPrincipal(FILE *parchivo,tTambor** ptambor,int* pVidaJugador,int* pVida
             sesionAnterior(parchivo);
             break;
         case 4:
+            mostrarRecuentoSesiones(parchivo);
+            break;
+        case 5:
+           
             printf("Saliendo...");
             Sleep(100);
             exit(0);
             break;
-        case 5:
-            mostrarRecuentoSesiones(parchivo);
-            break;
+            
     }
     }
 
@@ -114,11 +116,16 @@ void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion *pSesionAct
     cargarBalas(ptambor);
     int opc;
     bool balaviva;
+
     while(*pVidaJugador > 0 && *pVidaCPU > 0)
     {
-        printf("\n1.Disparar al enemigo\n2.Dispararse a si mismo\n");
-        printf("\nOpcion: ");
-        scanf("%d",&opc);
+        opc = 0; //reseteamos para que entre al bucle
+        while(opc != 1 && opc != 2)
+        {
+            printf("\n1.Disparar al enemigo\n2.Dispararse a si mismo\n");
+            printf("\nOpcion: ");
+            scanf("%d",&opc);
+        }
 
         printf("\n");
 
@@ -127,21 +134,22 @@ void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion *pSesionAct
             balaviva = dispararCPU(ptambor,pVidaCPU);
             if(balaviva)
             {
-                printf("\nBala viva!,vida de la cpu: %d",*pVidaCPU);
+                printf("\nBala viva!,vida de la CPU: %d\n",*pVidaCPU);
             }
             else{
-                printf("\nBala de fogueo,turno de la cpu");
+                printf("\nBala de fogueo,turno de la CPU\n");
             }
 
             pSesionAct->disparoshechos++;
         }
         
+        //SI la opcioon es dispararse a si mismo y el tambor no esta vacio
         if(opc == 2 && (*ptambor)->inicio != NULL)
         {
             balaviva = dispararJugador(ptambor,pVidaJugador);
             if(balaviva)
             {
-                printf("\nBala viva!,vida del jugador: %d",*pVidaJugador);
+                printf("\nBala viva!,vida del jugador: %d\n",*pVidaJugador);
                 Sleep(500);
                 pSesionAct->disparoshechos++;
                 pSesionAct->disparosrecibidos++;
@@ -153,20 +161,27 @@ void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion *pSesionAct
             cargarBalas(ptambor);
         }
 
-        //si la bala es viva es turno de la cpu
+        if(*pVidaJugador <= 0 || *pVidaCPU <= 0)
+        {
+            break;
+        }
+
+        //si la bala es viva es turno de la CPU
         //si la bala no es viva y el jugador se disparo a si mismo,turno del jugador
         if(balaviva == false && opc == 2 && (*ptambor)->inicio != NULL)
         {
-            printf("\nBala de fogueo,turno extra");
+            printf("\nBala de fogueo,turno extra\n");
             Sleep(500);
             continue;
         }
 
         
 
+        
+
         if((*ptambor)->inicio != NULL)
         {
-            printf("\nTurno del enemigo");
+            printf("\nTurno del enemigo\n");
             Sleep(500);
             Enemigo(ptambor,pVidaJugador,pVidaCPU,pSesionAct);
         }
@@ -194,11 +209,17 @@ void jugar(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion *pSesionAct
 void creditos()
 {
     printf("\nDesarrolladores: ");
+    Sleep(300);
     printf("\nGrupo 28");
+    Sleep(300);
     printf("\n\nGonzalez Lourdes Guadalupe");
-    printf("\n\nMiño Maidana Ulises Ivan");
+    Sleep(300);
+    printf("\n\nMino Maidana Ulises Ivan");
+    Sleep(300);
     printf("\n\nKarachun Pablo Ilan");
+    Sleep(300);
     printf("\n\nLencinas Gomez Gonzalo Ivan");
+    Sleep(300);
     printf("\n\nIbarra Mateo\n\n");
 }
 
@@ -211,6 +232,8 @@ void cargarBalas(tTambor** ptambor)
 
     tambor->inicio = NULL;
     tambor->numbalas = 0;
+
+    int fogueo=0,vivas=0;
 
     
     tBalas * aux = NULL;
@@ -228,6 +251,15 @@ void cargarBalas(tTambor** ptambor)
         bala->activa = rand() % 2;
         bala->siguientebala = NULL;
 
+        if(bala->activa == 0)
+        {
+            fogueo++;
+        }
+        else
+        {
+            vivas++;
+        }
+
         if(tambor->inicio == NULL)
         {
             tambor->inicio = bala;
@@ -243,8 +275,15 @@ void cargarBalas(tTambor** ptambor)
     }
 
     *ptambor = tambor;
+
+    printf("\nBalas cargadas: %d",tambor->numbalas);
+    printf("\nBalas vivas: %d",vivas);
+    printf("\nBalas de fogueo: %d",fogueo);
+    printf("\n\n");
+    Sleep(1000);
 }
 
+//estas dos funciones deberian de ser solo 1,y cambiarian los argumentos,lit son las misma cosa
 bool dispararJugador(tTambor** ptambor,int* pvida)
 {
     if(Disparar(ptambor))
@@ -276,7 +315,7 @@ bool Disparar(tTambor** ptambor)
 
         (*ptambor)->numbalas = 0;
 
-        printf("\nCargando balas...");
+        printf("\nCargando balas...\n");
 
         Sleep(1000);
 
@@ -317,21 +356,21 @@ void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion* pSesionA
 
         if(rand() % 2)
         {
-            printf("\nEl enemigo se disparo a si mismo");
+            printf("\nEl enemigo se disparo a si mismo\n");
             danoaljugador =dispararCPU(ptambor,pVidaCPU);
 
             Sleep(500);
 
             if(danoaljugador)
             {
-                printf("\nBala viva,vida de la cpu: %d\n",*pVidaCPU);
+                printf("\nBala viva,vida de la CPU: %d\n",*pVidaCPU);
                 printf("\nTurno del jugador\n");
                 seguirturno = false;
 
             }
             else
             {
-                printf("\nBala de fogueo,turno de la cpu\n");
+                printf("\nBala de fogueo,turno de la CPU\n");
                 Sleep(500);
                 seguirturno = true;
             }
@@ -340,7 +379,7 @@ void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion* pSesionA
         }
         else
         {
-            printf("\nEl enemigo disparo");
+            printf("\nEl enemigo disparo\n");
 
             Sleep(500);
 
@@ -353,7 +392,7 @@ void Enemigo(tTambor** ptambor,int* pVidaJugador,int* pVidaCPU,tSesion* pSesionA
             }
             else
             {
-                printf("\nBala de fogueo,turno del jugador");
+                printf("\nBala de fogueo,turno del jugador\n");
                 Sleep(500);
                 
             }
@@ -530,7 +569,7 @@ void mostrarRecuentoSesiones(FILE* parchivo)
     printf("\nNumero de sesiones: %d",numsesiones);
     printf("\nBalas totales: %d",balastotales);
     printf("\nVeces que gano el jugador: %d",ganadorJugador);
-    printf("\nVeces que gano la pcu: %d",ganadorCPU);
+    printf("\nVeces que gano la CPU: %d",ganadorCPU);
 
     fclose(parchivo);
 

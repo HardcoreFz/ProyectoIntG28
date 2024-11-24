@@ -7,11 +7,12 @@ Posible Declaracion e implementacion de funciones:
 //-Disparar
 //-dispararCPU
 //-DispararSiMismo
--SiguienteTurno
--RestarVida
--Ganador
--Enemigo
-
+//-SiguienteTurno
+//-RestarVida
+//-Ganador
+//-Enemigo
+TODO: comentar las funciones que faltan,capaz implementar algo que haga un balance entre las balas de fogueo y vivas en cargartambor()
+pero parece estar listo para entregar
 */
 
 #define MAXHP 4
@@ -25,7 +26,7 @@ Posible Declaracion e implementacion de funciones:
 #include <string.h>
 #include <windows.h>
 
-//int jugador=MAXHP, dealer=MAXHP;
+//int jugador=MAXHP, dealer=MAXHP; esto deberia ir en el .c
 
 typedef struct balas{
     bool activa;
@@ -225,7 +226,7 @@ void creditos()
 
 void cargarBalas(tTambor** ptambor)
 {
-    //genera valores booleanos aleatorios
+    //genera valores booleanos aleatorios para las balas
     srand(time(NULL));
 
     tTambor *tambor = (tTambor*)malloc(sizeof(tTambor));
@@ -422,7 +423,7 @@ void sesionAnterior(FILE* parchivo)
 
     tSesion sesion;
 
-    //va a la sesion anterior,desde el final del archivo
+    //va a la sesion anterior,desde el final del archivo,no se como sacar el warning
     fseek(parchivo,-sizeof(tSesion),SEEK_END);
 
     if(fread(&sesion,sizeof(tSesion),1,parchivo) == 1)
@@ -465,7 +466,7 @@ void guardarSesion(FILE* parchivo,tSesion sesion)
 void ordenarSesion(FILE* parchivo,tSesion sesion)
 {
 
-    // Abrir archivo en modo lectura para cargar datos
+    // se abre el archivo en modo lectura para leer solamente
     parchivo = fopen("sesiones.dat", "rb");
 
     if (parchivo == NULL) {
@@ -476,20 +477,20 @@ void ordenarSesion(FILE* parchivo,tSesion sesion)
     tSesion sesiones[MAXSESIONES];
     int contadorses = 0;
 
-    // Leer las sesiones en memoria
+    // lee todas las sesiones hasta que encuentre todas o llegue al maximo de sesiones,o hasta que falle la lectura
     while (fread(&sesiones[contadorses], sizeof(tSesion), 1, parchivo) == 1) {
         contadorses++;
-        if (contadorses >= MAXSESIONES) break; // Evitar desbordamiento
+        if (contadorses >= MAXSESIONES) break; 
     }
 
-    fclose(parchivo); // Cerrar después de lectura
+    fclose(parchivo); //se cierra el archivo,para despues reabrirlo
 
-    // Ordenar sesiones
+    // ordenamiento
     for (int i = 0; i < contadorses - 1; i++) {
         for (int j = i + 1; j < contadorses; j++) {
-            // Priorizar ganador (true primero)
+            // Se ordena primero si el ganador fue el jugador
             if (sesiones[i].ganador < sesiones[j].ganador ||
-                // Si ambos son iguales, ordenar por disparos hechos (descendente)
+                // si el ganador es el mismo,entonces se va aordenando por el numero de disparos hechos
                 (sesiones[i].ganador == sesiones[j].ganador &&
                  sesiones[i].disparoshechos < sesiones[j].disparoshechos)) {
                 tSesion temp = sesiones[i];
@@ -499,7 +500,7 @@ void ordenarSesion(FILE* parchivo,tSesion sesion)
         }
     }
 
-    // Abrir archivo en modo escritura para sobrescribir datos ordenados
+    // abre el archivo en modo escritura para sobrescribir el archivo anterior
     parchivo = fopen("sesiones.dat", "wb");
 
     if (parchivo == NULL) {
@@ -507,12 +508,12 @@ void ordenarSesion(FILE* parchivo,tSesion sesion)
         return;
     }
 
-    // Escribir las sesiones ordenadas al archivo
+    // escribe las sesiones ordenadas
     for (int i = 0; i < contadorses; i++) {
         fwrite(&sesiones[i], sizeof(tSesion), 1, parchivo);
     }
 
-    fclose(parchivo); // Cerrar archivo después de escribir
+    fclose(parchivo); 
 
     printf("\nSesiones reordenadas y guardadas correctamente\n");
 
